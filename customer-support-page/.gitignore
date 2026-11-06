@@ -5,3 +5,6 @@ backups/
 *.log
 *.sqlite*
 test-results/
+
+dist/
+.vercel/

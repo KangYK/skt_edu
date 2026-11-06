@@ -80,3 +80,30 @@ Node가 PATH에 없다면 Windows 실행 파일이 이 PC의 Codex 제공 Node�
 브라우저에서 가상 문의 접수·공개 답변·담당자 배정·상태 변경을 확인했습니다. 1280px 대시보드와 375px 문의 상세/관리 화면을 확인했습니다. 캡처는 `screenshots/`에 있습니다.
 
 참고: [Node.js SQLite 공식 문서](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html). 폰트 라이선스는 `public/fonts/LICENSE.txt`입니다.
+
+## Vercel 과제 시연 배포
+
+이 프로젝트를 Vercel에 올리면 **정적 과제 시연 버전**이 빌드됩니다. 기존 실제 저장 서버는 로컬 실행용으로 유지됩니다.
+
+- 저장소: `KangYK/skt_edu`
+- Root Directory: `customer-support-page`
+- Framework Preset: `Other`
+- Build Command: `node scripts/build-static.mjs`
+- Output Directory: `dist`
+- Node.js: 24.x
+- 환경변수, 외부 DB, 로그인 비밀 키: 필요 없음
+
+`vercel.json`에 빌드와 출력 설정을 포함했습니다. 이미 프로젝트를 만들어 둔 경우 Settings → Build and Deployment에서 Root Directory가 위 경로인지 확인하고 새 커밋을 배포하세요. 다른 프로젝트인 `team-page`의 설정은 변경하지 않습니다.
+
+정적 시연에서는 비밀번호 없이 고객·고객사 담당자·유지보수 담당자·관리자 역할을 선택합니다. 문의·답변·상태 변경과 가상 관리 기능은 현재 브라우저의 localStorage에만 저장되며 서버로 전송하지 않습니다. 첨부는 512KB, 문의당 5개까지입니다. ‘시연 초기화’ 버튼으로 예시 상태로 되돌릴 수 있습니다. 사용자 간 공유·실제 인증·접수·이메일 발송은 제공하지 않습니다. 역할별 표시는 화면 체험용이며 보안 경계가 아닙니다.
+
+빌드에는 `public/`의 화면과 폰트, `static-demo/model.mjs`만 포함됩니다. 서버, SQLite DB, `.env`, 실제 문의·계정 데이터는 포함하지 않습니다.
+
+로컬 정적 시연 확인:
+
+```powershell
+node scripts/build-static.mjs
+python -m http.server 4312 --bind 127.0.0.1 --directory dist
+```
+
+http://127.0.0.1:4312 에서 확인합니다. 테스트는 `node --test tests/*.test.mjs`로 실행합니다.
