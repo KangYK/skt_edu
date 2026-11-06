@@ -1,0 +1,17 @@
+PRAGMA foreign_keys=ON;
+CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY,value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS customers(id INTEGER PRIMARY KEY,name TEXT NOT NULL UNIQUE);
+CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,email TEXT NOT NULL UNIQUE,name TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN ('customer','manager','staff','admin')),customer_id INTEGER REFERENCES customers(id),password_hash TEXT,active INTEGER NOT NULL DEFAULT 1,CHECK((role IN ('customer','manager') AND customer_id IS NOT NULL) OR (role IN ('staff','admin') AND customer_id IS NULL)));
+CREATE TABLE IF NOT EXISTS assignments(user_id INTEGER REFERENCES users(id),customer_id INTEGER REFERENCES customers(id),PRIMARY KEY(user_id,customer_id));
+CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY,customer_id INTEGER NOT NULL REFERENCES customers(id),name TEXT NOT NULL,contract TEXT NOT NULL DEFAULT '유지보수 범위와 지원 시간은 담당자에게 확인해 주세요.',UNIQUE(customer_id,name));
+CREATE TABLE IF NOT EXISTS tickets(id INTEGER PRIMARY KEY,customer_id INTEGER NOT NULL REFERENCES customers(id),product_id INTEGER NOT NULL REFERENCES products(id),author_id INTEGER NOT NULL REFERENCES users(id),title TEXT NOT NULL,body TEXT NOT NULL,kind TEXT NOT NULL,priority TEXT NOT NULL DEFAULT '보통',status TEXT NOT NULL DEFAULT '접수',assignee_id INTEGER REFERENCES users(id),version INTEGER NOT NULL DEFAULT 1,request_key TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(author_id,request_key));
+CREATE INDEX IF NOT EXISTS ticket_customer_idx ON tickets(customer_id,updated_at);
+CREATE TABLE IF NOT EXISTS comments(id INTEGER PRIMARY KEY,ticket_id INTEGER NOT NULL REFERENCES tickets(id),author_id INTEGER NOT NULL REFERENCES users(id),body TEXT NOT NULL,internal INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY,ticket_id INTEGER NOT NULL REFERENCES tickets(id),actor_id INTEGER NOT NULL REFERENCES users(id),body TEXT NOT NULL,internal INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS attachments(id INTEGER PRIMARY KEY,ticket_id INTEGER NOT NULL REFERENCES tickets(id),author_id INTEGER NOT NULL REFERENCES users(id),filename TEXT NOT NULL,mime TEXT NOT NULL,content BLOB NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS articles(id INTEGER PRIMARY KEY,customer_id INTEGER REFERENCES customers(id),product_id INTEGER REFERENCES products(id),kind TEXT NOT NULL CHECK(kind IN ('guide','notice','faq')),title TEXT NOT NULL,body TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id),csrf TEXT NOT NULL,expires INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS access_tokens(token_hash TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id),expires INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY,actor_id INTEGER REFERENCES users(id),action TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS login_limits(key TEXT PRIMARY KEY,count INTEGER NOT NULL,expires INTEGER NOT NULL);
+PRAGMA user_version=1;
