@@ -9,5 +9,9 @@
     if(Array.isArray(stored.noteItems))return normalize(stored.noteItems);
     return typeof stored.notes==='string'&&stored.notes.trim()?[{id:'legacy-note',text:stored.notes.slice(0,10000),createdAt:0}]:[];
   }
-  const api={normalize,restore};if(typeof module!=='undefined')module.exports=api;else root.NotesCore=api;
+  function exportText(raw){
+    const items=normalize(raw).sort((a,b)=>b.createdAt-a.createdAt);
+    return ['수업 중 메모',`전체 ${items.length}개`,'',...items.map((item,index)=>`${index+1}. ${item.text}`)].join('\r\n\r\n')+'\r\n';
+  }
+  const api={normalize,restore,exportText};if(typeof module!=='undefined')module.exports=api;else root.NotesCore=api;
 })(globalThis);
