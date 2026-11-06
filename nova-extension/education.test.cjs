@@ -1,0 +1,53 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const core = require('./education-core');
+const lesson = {id:'one',date:'2026-11-06',title:'HTML 기초',start:'09:00',end:'10:00'};
+const next = {id:'two',date:'2026-11-06',title:'실습',start:'10:00',end:'11:30'};
+assert.equal(core.validate(lesson), '');
+assert.equal(core.validate(next,[lesson]), '');
+assert.ok(core.validate({...next,start:'09:59'},[lesson]));
+assert.ok(core.validate({...lesson,end:'08:00'}));
+assert.ok(core.validate({...lesson,end:'09:00'}));
+assert.ok(core.validate({...lesson,start:'25:00'}));
+assert.ok(core.validate({...lesson,title:'   '}));
+assert.ok(core.validate({...lesson,date:'2026-02-30'}));
+assert.equal(core.validate({...lesson,id:'three',date:'2026-11-07'},[lesson]), '');
+assert.equal(core.validate({...lesson,title:'수정'},[lesson]), '');
+assert.deepEqual(core.forDate([next,lesson],lesson.date).map(item=>item.id),['one','two']);
+const at = time => new Date(`2026-11-06T${time}:00`);
+assert.equal(core.status([lesson,next],lesson.date,at('08:59')).kind,'upcoming');
+assert.equal(core.status([lesson,next],lesson.date,at('09:00')).seconds,3600);
+assert.equal(core.status([lesson,next],lesson.date,at('09:30')).progress,50);
+assert.equal(core.status([lesson,next],lesson.date,at('10:00')).item.id,'two');
+assert.equal(core.status([lesson,next],lesson.date,at('11:30')).kind,'finished');
+assert.equal(core.status([],lesson.date,at('11:30')).kind,'empty');
+assert.equal(core.status([next],lesson.date,at('09:30')).kind,'upcoming');
+assert.deepEqual(core.normalize(JSON.parse(JSON.stringify([next,lesson]))),[next,lesson]);
+assert.equal(core.normalize([lesson,lesson,{...next,start:'09:30'},null]).length,1);
+const html=fs.readFileSync(require.resolve('./dashboard.html'),'utf8');
+assert.ok(html.includes('id="education-card"'));
+assert.ok(!html.includes('id="timer-start"'));
+assert.ok(!fs.readFileSync(require.resolve('./dashboard.js'),'utf8').includes("$('#timer')"));
+console.log('PASS: timetable validation, overlap and adjacent classes, edit, chronological order, countdown, exact boundaries, progress, persisted round trip, invalid stored data');
+const full={...lesson,end:'12:00'};
+let split=core.split(full,50,10);
+assert.equal(split.error,'');assert.equal(split.segments.length,6);
+assert.deepEqual(split.segments.map(item=>[item.start,item.end,item.kind]),[
+  ['09:00','09:50','lesson'],['09:50','10:00','break'],
+  ['10:00','10:50','lesson'],['10:50','11:00','break'],
+  ['11:00','11:50','lesson'],['11:50','12:00','break']
+]);
+assert.equal(core.split({...full,end:'09:30'},50,10).segments.length,1);
+assert.equal(core.split({...full,end:'09:55'},50,10).segments.at(-1).end,'09:55');
+assert.equal(core.split({...full,end:'10:15'},50,10).segments.at(-1).end,'10:15');
+assert.equal(core.split(full,50,0).segments.length,4);
+for(const duration of [0,-1,0.5,NaN,Infinity,1441])assert.ok(core.split(full,duration,10).error);
+for(const duration of [-1,0.5,NaN,Infinity,1441])assert.ok(core.split(full,50,duration).error);
+assert.ok(core.split(full,50,10,[{...next,start:'11:00',end:'13:00'}]).error);
+assert.equal(core.split(full,50,10,[full]).error,'');
+const saved=split.segments.map((item,i)=>({...item,id:`split-${i}`}));
+assert.deepEqual(core.normalize(JSON.parse(JSON.stringify(saved))),saved);
+assert.equal(core.status(saved,lesson.date,at('09:50')).item.kind,'break');
+assert.equal(core.status(saved,lesson.date,at('10:00')).item.kind,'lesson');
+assert.equal(split.segments.reduce((sum,item)=>sum+core.minutes(item.end)-core.minutes(item.start),0),180);
+console.log('PASS: split cycles, shortened final lesson/rest, zero breaks, invalid durations, overlap prevention, replacing one class, persisted kinds, countdown transitions');

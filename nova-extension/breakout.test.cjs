@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),core=require('./breakout-core');
+let game=core.create();assert.equal(game.bricks.length,32);assert.equal(game.lives,3);
+core.move(game,-100);assert.equal(game.paddle,0);core.move(game,1000);assert.equal(game.paddle,core.WIDTH-core.PADDLE_WIDTH);
+const readyX=game.x;core.step(game,.05);assert.equal(game.x,readyX);
+game.state='playing';game.x=7;game.y=180;game.vx=-200;game.vy=0;core.step(game,.02);assert.ok(game.vx>0);
+game=core.create();game.state='playing';game.x=game.paddle+core.PADDLE_WIDTH/2;game.y=core.PADDLE_Y-7;game.vy=210;game.vx=0;core.step(game,.02);assert.ok(game.vy<0);assert.equal(game.lives,3);
+game=core.create();game.state='playing';game.x=2;game.y=330;core.step(game,.02);assert.equal(game.lives,2);assert.equal(game.state,'serve');
+game.state='playing';game.lives=1;game.y=330;core.step(game,.02);assert.equal(game.state,'lost');assert.equal(game.lives,0);
+game=core.create();game.state='playing';game.bricks.forEach((b,i)=>b.alive=i===0);const brick=game.bricks[0];game.x=brick.x+25;game.y=brick.y+brick.h+7;game.vx=0;game.vy=-210;core.step(game,.02);assert.equal(game.score,10);assert.equal(game.state,'won');
+game=core.create();game.state='paused';const y=game.y;core.step(game,2);assert.equal(game.y,y);
+console.log('PASS: bounds, wall/paddle/brick collisions, score, lives, win/loss, ready/pause');
